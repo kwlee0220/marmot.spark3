@@ -1,0 +1,186 @@
+apply plugin: 'java-library'
+apply plugin: 'maven-publish'
+apply plugin: 'com.github.johnrengelman.shadow'
+
+buildscript {
+	repositories {
+		mavenLocal()
+		jcenter()
+	}
+	dependencies {
+		classpath 'com.github.jengelman.gradle.plugins:shadow:4.0.4'
+	}
+}
+
+group = 'etri'
+version = '20.05.15'
+
+sourceCompatibility = JavaVersion.VERSION_1_8
+[compileJava,compileTestJava]*.options*.encoding = 'UTF-8'
+
+repositories {
+    mavenLocal()
+	maven { url "http://repo.osgeo.org/repository/release/" }
+    mavenCentral()
+}
+
+ext {
+	hadoop_version = '3.1.1'
+	spark_version = '2.11'
+	spark_lib_version = '2.3.2'
+	spark_avro_version = '4.0.0'
+}
+
+dependencies {
+	compile project(':marmot.data')
+	compile project(':marmot.hadoop')
+	
+//	compile ("org.apache.hadoop:hadoop-client:${hadoop_version}") {
+//		exclude group: 'com.google.guava'		// shadow 시킬 목적
+//		exclude group: 'com.google.protobuf'	// shadow 시킬 목적
+//		exclude group: 'io.netty'				// shadow 시킬 목적
+//		exclude group: 'org.apache.commons.cli'	// shadow 시킬 목적
+//		exclude group: 'org.apache.avro'	// shadow 시킬 목적
+//		
+//		// 'com.sun.jersey.contribs:jersey.guice' module에서 guava를 예전 버전을 사용하기 때문에 
+//		// guava shadow시 바뀐 reference를 사용하지 않게 하기 위해서 'jersey.guice' module을
+//		// 제외시킨다. 그렇지 않으면 map/reduce 작업시 오류 발생됨.
+//		exclude group: 'com.sun.jersey.contribs'
+//	}
+	
+	compile ("org.apache.spark:spark-sql_${spark_version}:${spark_lib_version}") {
+//		exclude group: 'org.apache.avro'	// shadow 시킬 목적
+	}
+	compile ("com.databricks:spark-avro_${spark_version}:${spark_avro_version}") {
+//		exclude group: 'org.apache.avro'	// shadow 시킬 목적
+	}
+	compile "com.fasterxml.jackson.module:jackson-module-scala_${spark_version}:2.10.2"
+	
+}
+
+shadowJar {
+	classifier 'all'
+	
+	zip64 true
+	mergeServiceFiles()
+	
+	exclude 'META-INF/*.SF'
+	exclude 'META-INF/*.DSA'
+	exclude 'META-INF/*.RSA'
+	
+	relocate 'org.apache.avro', 'shadow.org.apache.avro'
+	relocate 'com.google', 'shadow.com.google'
+	relocate 'io.netty', 'shadow.io.netty'
+	relocate 'org.apache.commons.cli', 'shadow.org.apache.commons.cli'
+	
+	dependencies {
+		exclude(dependency("org.apache.hadoop:.*:"))
+		exclude(dependency("org.apache.curator:.*:"))
+		
+//		exclude(dependency("org.apache.avro:.*:"))
+		exclude(dependency("org.codehaus.jackson:.*:"))
+//		exclude(dependency("org.xerial.snappy:.*:"))
+		exclude(dependency("com.thoughtworks.paranamer:.*:"))
+//		exclude(dependency("log4j:.*:"))
+//		exclude(dependency("org.slf4j:.*:"))
+		
+		exclude(dependency("org.apache.spark:.*:"))
+		exclude(dependency("org.scalatest:.*:"))
+		exclude(dependency("com.ning:.*:"))
+		exclude(dependency("com.twitter:.*:"))
+//		exclude(dependency("com.fasterxml.jackson.module:.*:"))
+		exclude(dependency("net.java.dev.jets3t:.*:"))
+		exclude(dependency("net.razorvine:.*:"))
+		exclude(dependency("org.json4s:.*:"))
+		exclude(dependency("junit:.*:"))
+		exclude(dependency("com.twitter:.*:"))
+		exclude(dependency("io.dropwizard.metrics:.*:"))
+		exclude(dependency("org.apache.httpcomponents:.*:"))
+		exclude(dependency("javax.servlet:.*:"))
+		exclude(dependency("javax.xml.bind:.*:"))
+		exclude(dependency("org.w3c:.*:"))
+		exclude(dependency("javax.xml.bind:.*:"))
+		
+		exclude(dependency("org.apache.zookeeper:.*:"))
+		exclude(dependency("org.mortbay.jetty:.*:"))
+		exclude(dependency("com.sun.jersey:.*:"))
+		exclude(dependency("org.osgi:.*:"))
+		exclude(dependency("commons-io.*:.*:"))
+		exclude(dependency("org.apache.xbean:.*:"))
+		exclude(dependency("org.apache.ivy:.*:"))
+		exclude(dependency("org.apache.htrace:.*:"))
+		exclude(dependency(":commons-math3:"))
+		exclude(dependency(":commons-crypto:"))
+		exclude(dependency(":commons-compress:"))
+		exclude(dependency(":commons-httpclient:"))
+		exclude(dependency(":commons-codec:"))
+		exclude(dependency("xmlenc:.*:"))
+		exclude(dependency(":commons-crypto:"))
+
+		exclude(dependency("com.fasterxml.jackson.core:.*:"))
+		exclude(dependency("org.glassfish.*:.*:"))
+		exclude(dependency("net.sf.py4j:.*:"))
+		exclude(dependency("com.clearspring.analytics:.*:"))
+		exclude(dependency("oro:.*:"))
+	}
+}
+
+task sourceJar(type: Jar) {
+	classifier 'sources'
+	from sourceSets.main.allSource
+}
+task javadocJar(type: Jar) {
+	classifier 'javadoc'
+	from javadoc.destinationDir
+}
+
+artifacts {
+	archives sourceJar
+	archives javadocJar
+	archives shadowJar
+}
+
+publishing {
+	publications {
+		marmotHadoop(MavenPublication) {
+			from components.java
+			
+			artifact sourceJar
+			artifact javadocJar
+			artifact shadowJar
+		}
+	}
+}
+
+apply plugin: 'eclipse'
+eclipse {
+	classpath {
+		file {
+			withXml {
+				def node = it.asNode()
+				node.appendNode('classpathentry', [kind: 'output', path: 'classes'])
+			}
+			
+			whenMerged { cp ->
+				Map entryByPath = cp.entries.groupBy { entry -> entry.path }
+				entryByPath.each { key, values ->
+					if ( values.size() > 1 ) {
+            			def entry = values.first()
+            			if ( entry.kind == 'src' ) {
+            				entry.includes = []
+            				entry.excludes = []
+            			}
+            			int index = cp.entries.indexOf entry
+            			cp.entries.removeAll values
+            			cp.entries.add index, entry
+					}
+				}
+				cp.entries.each { entry ->
+					if ( entry.kind == 'src' && entry.hasProperty('output') ) {
+						entry.output = 'classes'
+					}
+				}
+			}
+		}
+	}
+}
