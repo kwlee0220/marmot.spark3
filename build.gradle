@@ -35,24 +35,24 @@ dependencies {
 	compile project(':marmot.data')
 	compile project(':marmot.hadoop')
 	
-//	compile ("org.apache.hadoop:hadoop-client:${hadoop_version}") {
+	compile ("org.apache.hadoop:hadoop-client:${hadoop_version}") {
 //		exclude group: 'com.google.guava'		// shadow 시킬 목적
 //		exclude group: 'com.google.protobuf'	// shadow 시킬 목적
 //		exclude group: 'io.netty'				// shadow 시킬 목적
 //		exclude group: 'org.apache.commons.cli'	// shadow 시킬 목적
-//		exclude group: 'org.apache.avro'	// shadow 시킬 목적
+		exclude group: 'org.apache.avro'		// shadow 시킬 목적
 //		
 //		// 'com.sun.jersey.contribs:jersey.guice' module에서 guava를 예전 버전을 사용하기 때문에 
 //		// guava shadow시 바뀐 reference를 사용하지 않게 하기 위해서 'jersey.guice' module을
 //		// 제외시킨다. 그렇지 않으면 map/reduce 작업시 오류 발생됨.
 //		exclude group: 'com.sun.jersey.contribs'
-//	}
+	}
 	
 	compile ("org.apache.spark:spark-sql_${spark_version}:${spark_lib_version}") {
-//		exclude group: 'org.apache.avro'	// shadow 시킬 목적
+		exclude group: 'org.apache.avro'	// shadow 시킬 목적
 	}
 	compile ("com.databricks:spark-avro_${spark_version}:${spark_avro_version}") {
-//		exclude group: 'org.apache.avro'	// shadow 시킬 목적
+		exclude group: 'org.apache.avro'	// shadow 시킬 목적
 	}
 	compile "com.fasterxml.jackson.module:jackson-module-scala_${spark_version}:2.10.2"
 	
@@ -142,7 +142,7 @@ artifacts {
 
 publishing {
 	publications {
-		marmotHadoop(MavenPublication) {
+		marmotSpark3(MavenPublication) {
 			from components.java
 			
 			artifact sourceJar

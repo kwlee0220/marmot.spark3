@@ -5,6 +5,7 @@ import org.apache.spark.sql.api.java.UDF1;
 import org.apache.spark.sql.api.java.UDF2;
 import org.apache.spark.sql.api.java.UDF3;
 import org.apache.spark.sql.types.DataTypes;
+import org.geotools.geojson.geom.GeometryJSON;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,6 +14,7 @@ import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.geom.Polygon;
 
+import marmot.geojson.GeoJsonReader;
 import marmot.spark.type.EnvelopeUDAF;
 import marmot.spark.type.EnvelopeUDT;
 import marmot.spark.type.GeometryUDT;
@@ -57,8 +59,8 @@ public class SpatialUDFs {
 		registry.register("ST_AsText", UDF_ST_GeomFromText, DataTypes.StringType);
 		registry.register("ST_GeomFromWKB", UDF_ST_GeomFromWKB, GeometryUDT.UDT);
 		registry.register("ST_AsBinary", UDF_ST_AsBinary, DataTypes.BinaryType);
-//		registry.register("ST_GeomFromGeoJSON", UDF_ST_GeomFromWKB, GeometryUDT.UDT);
-//		registry.register("ST_AsGeoJSON", UDF_ST_AsGeoJSON, DataTypes.StringType);
+		registry.register("ST_GeomFromGeoJSON", UDF_ST_GeomFromGeoJSON, GeometryUDT.UDT);
+		registry.register("ST_AsGeoJSON", UDF_ST_AsGeoJSON, DataTypes.StringType);
 		registry.register("ST_AsEnvelope", UDF_ST_AsEnvelope, EnvelopeUDT.UDT);
 		
 		// user-defined aggregation functions
@@ -252,26 +254,26 @@ public class SpatialUDFs {
 //		}
 //	};
 	
-//	private static final UDF1<String,Geometry> UDF_ST_GeomFromGeoJSON = (json) -> {
-//		try {
-//			if ( json == null ) {
-//				return null;
-//			}
-//			return GeoJsonReader.read(JsonParser.parse(json));
-//		}
-//		catch ( Exception e ) {
-//			s_logger.error(String.format("fails to parse GeoJSON: '%s'", json), e);
-//			return null;
-//		}
-//	};
-//	
-//	private static final UDF1<Geometry,String> UDF_ST_AsGeoJSON = (geom) -> {
-//		if ( geom == null ) {
-//			return null;
-//		}
-//
-//		return new GeometryJSON().toString(geom);
-//	};
+	private static final UDF1<String,Geometry> UDF_ST_GeomFromGeoJSON = (json) -> {
+		try {
+			if ( json == null ) {
+				return null;
+			}
+			return GeoJsonReader.read(json);
+		}
+		catch ( Exception e ) {
+			s_logger.error(String.format("fails to parse GeoJSON: '%s'", json), e);
+			return null;
+		}
+	};
+	
+	private static final UDF1<Geometry,String> UDF_ST_AsGeoJSON = (geom) -> {
+		if ( geom == null ) {
+			return null;
+		}
+
+		return new GeometryJSON().toString(geom);
+	};
 	
 	private static final UDF1<Geometry,Envelope> UDF_ST_AsEnvelope = (geom) -> {
 		if ( geom == null ) {

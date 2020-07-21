@@ -7,7 +7,7 @@ import java.io.InvalidObjectException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
-import java.util.UUID;
+import java.util.Map;
 
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.sql.Column;
@@ -163,12 +163,10 @@ public class MarmotSpark implements MarmotRuntime, Serializable {
 		return m_spark.read().format("com.databricks.spark.avro").load(path);
 	}
 	
-	public Dataset<Row> readCsvFile(String... path) {
+	public Dataset<Row> readCsvFile(Map<String,String> options, String... path) {
 		return m_spark.read()
-						.option("comment", "#")
-						.csv("file:///mnt/data/sbdata/나비콜/201601/carloc_hst-20160124.dat",
-								"file:///mnt/data/sbdata/나비콜/201601/carloc_hst-20160125.dat",
-								"file:///mnt/data/sbdata/나비콜/201601/carloc_hst-20160126.dat");
+						.options(options)
+						.csv(path);
 						
 	}
 	
