@@ -36,6 +36,7 @@ import marmot.dataset.AbstractDataSetServer;
 import marmot.dataset.DataSet;
 import marmot.dataset.DataSetInfo;
 import marmot.dataset.DataSetServer;
+import marmot.dataset.DataSetType;
 import marmot.file.FileServer;
 import marmot.spark.type.EnvelopeUDT;
 import marmot.spark.type.GeometryCollectionUDT;
@@ -153,7 +154,7 @@ public class MarmotSpark implements MarmotRuntime, Serializable {
 			}
 		}
 		
-		DataSetInfo info = new DataSetInfo(dsId, schema);
+		DataSetInfo info = new DataSetInfo(dsId, DataSetType.AVRO, schema);
 		DataSet ds = server.createDataSet(info, true);
 		String uri = server.getDataSetUri(dsId);
 		rows.write().mode(SaveMode.Append).format("com.databricks.spark.avro").save(uri);
