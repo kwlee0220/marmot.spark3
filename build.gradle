@@ -81,7 +81,6 @@ shadowJar {
 		exclude(dependency("org.codehaus.jackson:.*:"))
 //		exclude(dependency("org.xerial.snappy:.*:"))
 		exclude(dependency("com.thoughtworks.paranamer:.*:"))
-//		exclude(dependency("log4j:.*:"))
 //		exclude(dependency("org.slf4j:.*:"))
 		
 		exclude(dependency("org.apache.spark:.*:"))
