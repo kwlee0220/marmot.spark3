@@ -1,27 +1,28 @@
-apply plugin: 'java-library'
-apply plugin: 'maven-publish'
-apply plugin: 'com.github.johnrengelman.shadow'
-
-buildscript {
-	repositories {
-		mavenLocal()
-		jcenter()
-	}
-	dependencies {
-		classpath 'com.github.jengelman.gradle.plugins:shadow:4.0.4'
-	}
+plugins {
+	id 'java-library'
+	id 'eclipse'
+	id 'com.github.johnrengelman.shadow' version '8.1.1'
+	id 'maven-publish'
 }
 
 group = 'etri'
 version = '20.05.15'
 
-sourceCompatibility = JavaVersion.VERSION_1_8
+sourceCompatibility = '17'
+targetCompatibility = '17'
 [compileJava,compileTestJava]*.options*.encoding = 'UTF-8'
 
 repositories {
-    mavenLocal()
-	maven { url "http://repo.osgeo.org/repository/release/" }
-    mavenCentral()
+	mavenLocal()
+	maven {
+		url "http://www.datanucleus.org/downloads/maven2/"
+		allowInsecureProtocol = true
+	}
+	maven {
+		url "https://repo.osgeo.org/repository/release/"
+		allowInsecureProtocol = true
+	}
+	mavenCentral()
 }
 
 ext {
@@ -32,10 +33,10 @@ ext {
 }
 
 dependencies {
-	compile project(':marmot.data')
-	compile project(':marmot.hadoop')
+	implementation project(':marmot.data')
+	implementation project(':marmot.hadoop')
 	
-	compile ("org.apache.hadoop:hadoop-client:${hadoop_version}") {
+	implementation ("org.apache.hadoop:hadoop-client:${hadoop_version}") {
 //		exclude group: 'com.google.guava'		// shadow 시킬 목적
 //		exclude group: 'com.google.protobuf'	// shadow 시킬 목적
 //		exclude group: 'io.netty'				// shadow 시킬 목적
@@ -48,18 +49,18 @@ dependencies {
 //		exclude group: 'com.sun.jersey.contribs'
 	}
 	
-	compile ("org.apache.spark:spark-sql_${spark_version}:${spark_lib_version}") {
+	implementation ("org.apache.spark:spark-sql_${spark_version}:${spark_lib_version}") {
 		exclude group: 'org.apache.avro'	// shadow 시킬 목적
 	}
-	compile ("com.databricks:spark-avro_${spark_version}:${spark_avro_version}") {
+	implementation ("com.databricks:spark-avro_${spark_version}:${spark_avro_version}") {
 		exclude group: 'org.apache.avro'	// shadow 시킬 목적
 	}
-	compile "com.fasterxml.jackson.module:jackson-module-scala_${spark_version}:2.10.2"
+	implementation "com.fasterxml.jackson.module:jackson-module-scala_${spark_version}:2.10.2"
 	
 }
 
 shadowJar {
-	classifier 'all'
+	// classifier 'all'
 	
 	zip64 true
 	mergeServiceFiles()
@@ -125,11 +126,11 @@ shadowJar {
 }
 
 task sourceJar(type: Jar) {
-	classifier 'sources'
+	// classifier 'sources'
 	from sourceSets.main.allSource
 }
 task javadocJar(type: Jar) {
-	classifier 'javadoc'
+	// classifier 'javadoc'
 	from javadoc.destinationDir
 }
 
@@ -151,36 +152,35 @@ publishing {
 	}
 }
 
-apply plugin: 'eclipse'
 eclipse {
 	classpath {
 		file {
 			withXml {
 				def node = it.asNode()
-				node.appendNode('classpathentry', [kind: 'output', path: 'classes'])
+				node.appendNode('classpathentry', [kind: 'output', path: 'build/classes'])
 			}
 			
 			whenMerged { cp ->
 				Map entryByPath = cp.entries.groupBy { entry -> entry.path }
 				entryByPath.each { key, values ->
 					if ( values.size() > 1 ) {
-            			def entry = values.first()
-            			if ( entry.kind == 'src' ) {
-            				entry.includes = []
-            				entry.excludes = []
-            			}
-            			int index = cp.entries.indexOf entry
-            			cp.entries.removeAll values
-            			cp.entries.add index, entry
+						def entry = values.first()
+						if ( entry.kind == 'src' ) {
+							entry.includes = []
+							entry.excludes = []
+						}
+						int index = cp.entries.indexOf entry
+						cp.entries.removeAll values
+						cp.entries.add index, entry
 					}
 				}
 				cp.entries.each { entry ->
 					if ( entry.kind == 'src' && entry.hasProperty('output') ) {
-						if ( entry.path.startsWith("src/test/") ) {
-							entry.output = 'test_classes'
+						if ( entry.path.contains('/test/') ) {
+							entry.output = 'build/test_classes'
 						}
 						else {
-							entry.output = 'classes'
+							entry.output = 'build/classes'
 						}
 					}
 				}
